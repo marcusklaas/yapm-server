@@ -1,0 +1,19 @@
+{
+    "name": "marcusklaas/yapm-server",
+    "description": "Password library endpoint for yet-another-password-manager",
+    "require": {
+        "silex/silex": "~1.2"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Marcus Klaas de Vries",
+            "email": "mail@marcusklaas.nl"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+            "Yapm": "src/"
+        }
+    }
+}

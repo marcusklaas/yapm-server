@@ -7,23 +7,24 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yapm\PasswordVerifier;
 use Yapm\LibraryVersionExtractor;
+use Yapm\PasswordHasher;
 
-$hashfile = 'encrypted/passhash.txt';
-$pwlib = 'encrypted/passwords';
-$pwlibext = 'txt';
+$hashFile = 'encrypted/passhash.txt';
+$passwordPathStem = 'encrypted/passwords';
+$passwordFileExtension = 'txt';
 
 $app = new Application();
 
 // Library updates, master password changes
-$app->post('/', function (Request $request) use ($hashfile, $pwlib, $pwlibext) {
+$app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $passwordFileExtension) {
     $password = $request->get('pwhash', '');
-    $passwordVerifier = new PasswordVerifier($hashfile);
+    $passwordVerifier = new PasswordVerifier($hashFile);
 
     if (!$passwordVerifier->isValidPassword($password)) {
         return new Response('Invalid password', 400);
     }
 
-    $libraryPath = $pwlib . '.' . $pwlibext;
+    $libraryPath = $passwordPathStem . '.' . $passwordFileExtension;
 
     // read current library, get version
     $currentLibraryJson = file_get_contents($libraryPath);
@@ -37,14 +38,14 @@ $app->post('/', function (Request $request) use ($hashfile, $pwlib, $pwlibext) {
     if ($previousVersion + 1 !== $newVersion) {
         $message = sprintf(
             'Version mismatch. Expected %d, got %d',
-            previousVersion + 1,
+            $previousVersion + 1,
             $newVersion
         );
 
         return new Response($message, 400);
     }
 
-    $backupPath = $pwlib . $newVersion . '.' . $pwlibext;
+    $backupPath = $passwordPathStem . $newVersion . '.' . $passwordFileExtension;
 
     if( ! file_put_contents($backupPath, $newLibraryJson) ||
         ! file_put_contents($libraryPath, $newLibraryJson)) {
@@ -57,9 +58,9 @@ $app->post('/', function (Request $request) use ($hashfile, $pwlib, $pwlibext) {
         $passwordHash = PasswordHasher::hashPassword($newPassword);
 
         // Try to write new hash to disk
-        if ( ! file_put_contents($hashfile, $passwordHash)) {
+        if ( ! file_put_contents($hashFile, $passwordHash)) {
             // Restore library if it failed
-            $previousLibraryPath = $pwlib . $previousVersion . '.' . $pwlibext;
+            $previousLibraryPath = $passwordPathStem . $previousVersion . '.' . $passwordFileExtension;
 
             if ( ! rename($previousLibraryPath, $libraryPath)) {
                 // Even that failed, abort!
@@ -74,8 +75,8 @@ $app->post('/', function (Request $request) use ($hashfile, $pwlib, $pwlibext) {
 });
 
 // Serve the most recent library
-$app->get('/', function (Request $request) use ($app, $pwlib, $pwlibext) {
-    $path = $pwlib . '.' . $pwlibext;
+$app->get('/', function () use ($app, $passwordPathStem, $passwordFileExtension) {
+    $path = $passwordPathStem . '.' . $passwordFileExtension;
 
     if (!file_exists($path)) {
         $app->abort(404);

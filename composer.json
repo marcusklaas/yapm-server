@@ -1,8 +1,14 @@
 {
     "name": "marcusklaas/yapm-server",
     "description": "Password library endpoint for yet-another-password-manager",
+    "config": {
+        "platform": {
+            "php": "5.4"
+        }
+    },
     "require": {
-        "silex/silex": "~1.2"
+        "silex/silex": "~1.3",
+        "deralex/yaml-config-service-provider": "^1.0"
     },
     "license": "MIT",
     "authors": [

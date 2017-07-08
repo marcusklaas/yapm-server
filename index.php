@@ -8,20 +8,28 @@ use Symfony\Component\HttpFoundation\Response;
 use Yapm\PasswordVerifier;
 use Yapm\LibraryVersionExtractor;
 use Yapm\PasswordHasher;
+use DerAlex\Silex\YamlConfigServiceProvider;
 
 $hashFile = 'encrypted/passhash.txt';
 $passwordPathStem = 'encrypted/passwords';
 $passwordFileExtension = 'txt';
 
 $app = new Application();
+$app->register(new YamlConfigServiceProvider(__DIR__ . '/config.yml'));
 
 // Library updates, master password changes
-$app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $passwordFileExtension) {
+$app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $passwordFileExtension, $app) {
     $password = $request->get('pwhash', '');
     $passwordVerifier = new PasswordVerifier($hashFile);
 
     if (!$passwordVerifier->isValidPassword($password)) {
         return new Response('Invalid password', 400);
+    }
+
+
+    $newPassword = $request->get('newhash', null);
+    if ($newPassword && ! $app['config']['master_key']['allow_edit']) {
+        return new Response('Changing the master key is disabled', 400);
     }
 
     $libraryPath = $passwordPathStem . '.' . $passwordFileExtension;
@@ -51,8 +59,6 @@ $app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $
         ! file_put_contents($libraryPath, $newLibraryJson)) {
         return new Response('Failed writing new library to disk', 500);
     }
-
-    $newPassword = $request->get('newhash', null);
 
     if ($newPassword) {
         $passwordHash = PasswordHasher::hashPassword($newPassword);
@@ -84,5 +90,11 @@ $app->get('/', function () use ($app, $passwordPathStem, $passwordFileExtension)
 
     return $app->sendFile($path);
 });
+
+$app->match("{url}", function($url) use ($app) {
+        return "OK";
+    })
+    ->assert('url', '.*')
+    ->method("OPTIONS");
 
 $app->run();

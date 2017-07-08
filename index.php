@@ -26,8 +26,10 @@ $app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $
         return new Response('Invalid password', 400);
     }
 
-    if ($request->get('newhash', null) && ! $app['config']['master_key']['allow_edit']) {
-      return new Response('Changing the master key is disabled', 400);
+
+    $newPassword = $request->get('newhash', null);
+    if ($newPassword && ! $app['config']['master_key']['allow_edit']) {
+        return new Response('Changing the master key is disabled', 400);
     }
 
     $libraryPath = $passwordPathStem . '.' . $passwordFileExtension;
@@ -57,8 +59,6 @@ $app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $
         ! file_put_contents($libraryPath, $newLibraryJson)) {
         return new Response('Failed writing new library to disk', 500);
     }
-
-    $newPassword = $request->get('newhash', null);
 
     if ($newPassword) {
         $passwordHash = PasswordHasher::hashPassword($newPassword);
@@ -92,9 +92,9 @@ $app->get('/', function () use ($app, $passwordPathStem, $passwordFileExtension)
 });
 
 $app->match("{url}", function($url) use ($app) {
-    return "OK";
-  })
-  ->assert('url', '.*')
-  ->method("OPTIONS");
+        return "OK";
+    })
+    ->assert('url', '.*')
+    ->method("OPTIONS");
 
 $app->run();

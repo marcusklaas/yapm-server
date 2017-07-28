@@ -55,8 +55,8 @@ $app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $
 
     $backupPath = $passwordPathStem . $newVersion . '.' . $passwordFileExtension;
 
-    if( ! file_put_contents($backupPath, $newLibraryJson) ||
-        ! file_put_contents($libraryPath, $newLibraryJson)) {
+    if(@file_put_contents($backupPath, $newLibraryJson) === false ||
+        @file_put_contents($libraryPath, $newLibraryJson) === false) {
         return new Response('Failed writing new library to disk', 500);
     }
 
@@ -64,11 +64,11 @@ $app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $
         $passwordHash = PasswordHasher::hashPassword($newPassword);
 
         // Try to write new hash to disk
-        if ( ! file_put_contents($hashFile, $passwordHash)) {
+        if (@file_put_contents($hashFile, $passwordHash) === false) {
             // Restore library if it failed
             $previousLibraryPath = $passwordPathStem . $previousVersion . '.' . $passwordFileExtension;
 
-            if ( ! rename($previousLibraryPath, $libraryPath)) {
+            if (rename($previousLibraryPath, $libraryPath) === false) {
                 // Even that failed, abort!
                 return new Response('Updated library, but could not update password', 500);
             } else {
@@ -84,7 +84,7 @@ $app->post('/', function (Request $request) use ($hashFile, $passwordPathStem, $
 $app->get('/', function () use ($app, $passwordPathStem, $passwordFileExtension) {
     $path = $passwordPathStem . '.' . $passwordFileExtension;
 
-    if (!file_exists($path)) {
+    if (file_exists($path) === false) {
         $app->abort(404);
     }
 
